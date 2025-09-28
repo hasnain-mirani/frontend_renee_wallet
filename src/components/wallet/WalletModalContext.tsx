@@ -1,31 +1,28 @@
+// src/components/wallet/WalletModalContext.tsx
 import React, { createContext, useCallback, useMemo, useState } from "react";
 
-const BACKEND = (import.meta.env.VITE_BACKEND_BASE || "http://localhost:5000").trim();
+/** NEW: normalize backend base so `${BACKEND}/api/...` is always correct */
+const RAW_BACKEND = (import.meta.env.VITE_BACKEND_BASE || "/api").trim().replace(/\/+$/, "");
+const BACKEND = RAW_BACKEND.replace(/\/api$/i, ""); // strip trailing /api; we append /api below
 
 export type Chain = "evm" | "solana" | "tron";
 export type ProviderId = "metamask" | "alchemy" | "trongrid";
 export type Mode = "wallet" | "rpc";
 
 export type WalletModalContextValue = {
-  // modal
   isOpen: boolean;
   open: () => void;
   close: () => void;
 
-  // connection summary
   isConnecting: boolean;
   mode?: Mode;
   chain?: Chain;
   provider?: ProviderId;
   address?: string | null;
 
-  // EVM (MetaMask)
   connect: () => Promise<void>;
-
-  // RPC (used by onboarding / balance refresh)
   connectSolanaRpc: () => Promise<void>;
   connectTronRpc: () => Promise<void>;
-
   disconnect: () => void;
 };
 

@@ -2,7 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@/wallet/store";
 
-const API = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+/** NEW: normalize API base so `${API}/api/...` is always correct */
+const RAW_API = (import.meta.env.VITE_API_BASE || "/api").trim().replace(/\/+$/, "");
+const API = RAW_API.replace(/\/api$/i, ""); // strip trailing /api; we append /api below
 
 type TrxResp = { ok?: boolean; balanceSun: number; balanceTRX: number };
 type Trc20Meta = { name: string; symbol: string; decimals: number };

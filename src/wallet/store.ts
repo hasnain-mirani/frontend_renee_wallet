@@ -2,7 +2,11 @@ import { create } from "zustand";
 import { EncryptedBlob, newMnemonic, mnemonicToSeed, encryptSecret, decryptSecret } from "./core";
 import { deriveSolana, solanaGetBalance, solanaTransferSOL } from "./solana";
 
-const BACKEND = (import.meta.env.VITE_BACKEND_BASE || "http://localhost:5000").trim();
+/** --- NEW: normalize backend base so `${BACKEND}/api/...` is always correct --- */
+const RAW_BACKEND = (import.meta.env.VITE_BACKEND_BASE || "/api").trim().replace(/\/+$/, "");
+// If RAW_BACKEND ends with `/api` (e.g. "/api" or "https://api.example.com/api"),
+// strip that suffix so usages like `${BACKEND}/api/...` don't become `/api/api/...`.
+const BACKEND = RAW_BACKEND.replace(/\/api$/i, "");
 
 type State = {
   encrypted?: EncryptedBlob;
@@ -94,7 +98,7 @@ export const useWallet = create<State & Actions>((set, get) => ({
     set({});
   },
 
-  // ✅ Fixed: use /api prefix
+  // ✅ Uses normalized BACKEND so requests become `/api/...` (or `https://host/api/...`)
   async getBalances() {
     const st = get();
     const result: { sol?: number; trx?: number } = {};
@@ -124,19 +128,17 @@ export const useWallet = create<State & Actions>((set, get) => ({
     }
 
     // TRX balance
-   // ...inside getBalances()
-if (st.tron?.address) {
-  try {
-    const r = await fetch(`${BACKEND}/api/tron/account/${st.tron.address}`, {
-      method: "GET",
-      headers: { "Cache-Control": "no-cache" },
-    });
-    const account = await r.json();
-    result.trx = (account?.balance || 0) / 1e6;
-  } catch {
-    // ignore
-  }
-
+    if (st.tron?.address) {
+      try {
+        const r = await fetch(`${BACKEND}/api/tron/account/${st.tron.address}`, {
+          method: "GET",
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const account = await r.json();
+        result.trx = (account?.balance || 0) / 1e6;
+      } catch {
+        // ignore
+      }
     }
 
     set((s) => ({ ...s, last: { sol: result.sol, trx: result.trx } }));
